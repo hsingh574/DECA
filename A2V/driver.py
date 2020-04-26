@@ -58,6 +58,8 @@ def create_overlapping_samples(sound):
 
 
 def load_audio(audio_path):
+    audio_path = audio_path.replace('_v1','')
+    audio_path = audio_path.strip('.mp4')+'.wav'
     sound, sample_rate = torchaudio.load(audio_path)
     return create_overlapping_samples(sound)
     
@@ -128,7 +130,7 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 video_data = Variable(video_d)  # this needs to be array of still frames
 
                 audio_d = load_audio(os.path.join(AUDIO_DATA_PATH,audios[i]))
-                audio_d = torch.from_numpy(audio_d)
+                #audio_d = torch.from_numpy(audio_d)
                 audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
                 audio_data = Variable(audio_d)
 
