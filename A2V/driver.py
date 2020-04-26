@@ -61,7 +61,9 @@ def load_audio(audio_path):
     audio_path = audio_path.replace('_v1','')
     audio_path = audio_path.strip('.mp4')+'.wav'
     sound, sample_rate = torchaudio.load(audio_path)
-    return create_overlapping_samples(sound)
+    data = create_overlapping_samples(sound)
+
+    return data
     
 
 
@@ -124,38 +126,49 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 video_d = video_d.transpose(0, 3, 1, 2)
                 for j in range(video_d.shape[0]):
                     video_d[j] = (video_d[j] - video_d[j].min())/(video_d[j].max() - video_d[j].min())
+                print('a')
                 video_d = torch.from_numpy(video_d)
-
+                print('b')
                 #print(video_d.shape)
                 video_data = Variable(video_d)  # this needs to be array of still frames
-
+                print('c')
                 audio_d = load_audio(os.path.join(AUDIO_DATA_PATH,audios[i]))
                 #audio_d = torch.from_numpy(audio_d)
+                print('d')
                 audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
+                print('e')
                 audio_data = Variable(audio_d)
-
+                print('f')
                 MINIBATCHSIZE = video_d.size()[0]
-
+                print('g')
                 still_frame = video_d[2]
                 # To show a still frame
                 # show_image(still_frame.numpy())
-
+                print('h')
                 still_frame = still_frame.view(1, still_frame.size()[0], still_frame.size()[1], still_frame.size()[2])
+                print('i')
                 still_frame = Variable(still_frame.repeat(MINIBATCHSIZE, 1, 1, 1))
+                print('j')
                 noise_data = Variable(torch.rand(MINIBATCHSIZE, 1, NOISE_OUTPUT))
                 # print(noise_data.size())
+                print('k')
                 noise_data = noise_data.data.resize_(noise_data.size()).normal_(0, 0.6)
+                print('l')
                 # plt.imshow(noise_data.numpy())
                 # plt.show()
                 # print(noise_data)
                 # print(noise_data.size())
 
                 if cuda:
+                    print('d')
                     audio_data = audio_data.cuda()
+                    print('e')
                     video_data = video_data.cuda()
+                    print('f')
                     noise_data = noise_data.cuda()
+                    print('g')
                     still_frame = still_frame.cuda()
-
+                    print('h')
                 # Train Generator
                 # print(audio_data.size())
                 # print(video_data.size())
@@ -163,8 +176,9 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 optimizer_unet.zero_grad()
                 optimizer_fd.zero_grad()
                 optimizer_sd.zero_grad()
-
+                print('m')
                 gen_frames = unet(still_frame, audio_data, noise_data)
+                print('n')
                 # print(gen_frames[0])
 
                 # img = gen_frames[random.randint(0, MINIBATCHSIZE -1)].cpu().detach().numpy().transpose(1, 2, 0)
@@ -183,26 +197,31 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
 
                 #print(torch.mean(torch.mean(torch.mean(torch.mean(torch.abs(video_data - gen_frames), 1), 1), 1)))
                 # return
+                print('o')
                 l1_loss = torch.mean(torch.mean(torch.mean(torch.mean(torch.abs(video_data - gen_frames), 1), 1), 1))
                 #print(l1_loss)
                 # return
-
+                print('p')
 
                 out1 = frame_discriminator(video_data, still_frame)
+                print('q')
                 out2 = frame_discriminator(gen_frames, still_frame)
-
+                print('r')
                 out3 = sequence_discriminator(video_data, audio_data)
+                print('s')
                 out4 = sequence_discriminator(gen_frames, audio_data)
                 # print(out1)
                 # print("out is ", out3.size())
-
+                print('t')
                 d_loss = -dis_loss(out2, out1, out4 ,out3)
                 # frame_loss = fdis_loss(out2, out1)
                 # sequence_loss = sdis_loss(out4, out3)
                 # d_loss = -(frame_loss + sequence_loss)
-
+                print('u')
                 g_loss = -gen_loss(out2, out4) + Lambda*l1_loss
+                print('v')
                 g_loss.backward(retain_graph=True)
+                print('w')
                 optimizer_unet.step()
 
                 d_loss.backward()
@@ -212,8 +231,11 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
 
                 #print("G loss {} FD loss {} SD loss {} D loss {}".format(g_loss.data, frame_loss.data, sequence_loss.data, d_loss.data))
                 #print("G loss {}D loss {}".format(g_loss.data, d_loss.data))
+                print('x')
                 batch_g_loss += g_loss.data
+                print('y')
                 batch_d_loss += d_loss.data
+                print('z')
                 tock = time.time()
                 # print("Epoch {}, Done for file: {}  Total time elapsed {} hr".format(epoch, videos[i], (tock-tick)/(60*60)))
             except Exception as e:
