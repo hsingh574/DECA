@@ -255,7 +255,7 @@ def generate_test_images(batch_no, unet):
         video_d = load_video(os.path.join(VIDEO_TEST_PATH,videos[i]))
         audio_d = load_audio(os.path.join(AUDIO_TEST_PATH,audios[i]))
         video_d = torch.from_numpy(video_d)
-        audio_d = torch.from_numpy(audio_d)
+        #audio_d = torch.from_numpy(audio_d)
         print(audio_d.size())
         audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
@@ -338,7 +338,7 @@ def test():
             video_d[j] = (video_d[j] - video_d[j].min())/(video_d[j].max() - video_d[j].min())
 
         video_d = torch.from_numpy(video_d)
-        audio_d = torch.from_numpy(audio_d)
+        #audio_d = torch.from_numpy(audio_d)
         print(audio_d.size())
         audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
@@ -418,7 +418,7 @@ def generate_video(DATA_PATH, name, SAVE_PATH, unet):
         video_d[j] = (video_d[j] - video_d[j].min())/(video_d[j].max() - video_d[j].min())
 
     video_d = torch.from_numpy(video_d)
-    audio_d = torch.from_numpy(audio_d)
+    #audio_d = torch.from_numpy(audio_d)
     print(audio_d.size())
     audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
