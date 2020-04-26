@@ -131,7 +131,7 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 video_data = Variable(video_d)  # this needs to be array of still frames
                 audio_d = load_audio(os.path.join(AUDIO_DATA_PATH,audios[i]))
                 #audio_d = torch.from_numpy(audio_d)
-                audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
+                #audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
                 audio_data = Variable(audio_d)
                 MINIBATCHSIZE = video_d.size()[0]
                 still_frame = video_d[2]
@@ -159,6 +159,10 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 optimizer_unet.zero_grad()
                 optimizer_fd.zero_grad()
                 optimizer_sd.zero_grad()
+                print(still_frame.size())
+                print(audio_data.size())
+                print(noise_data.size())
+                
                 gen_frames = unet(still_frame, audio_data, noise_data)
                 # print(gen_frames[0])
 
@@ -248,7 +252,7 @@ def generate_test_images(batch_no, unet):
         video_d = torch.from_numpy(video_d)
         #audio_d = torch.from_numpy(audio_d)
         print(audio_d.size())
-        audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
+        #audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
         MINIBATCHSIZE = video_d.size()[0]
 
@@ -331,7 +335,7 @@ def test():
         video_d = torch.from_numpy(video_d)
         #audio_d = torch.from_numpy(audio_d)
         print(audio_d.size())
-        audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
+        #audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
         MINIBATCHSIZE = video_d.size()[0]
 
@@ -411,7 +415,7 @@ def generate_video(DATA_PATH, name, SAVE_PATH, unet):
     video_d = torch.from_numpy(video_d)
     #audio_d = torch.from_numpy(audio_d)
     print(audio_d.size())
-    audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
+    #audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
 
     MINIBATCHSIZE = video_d.size()[0]
 
