@@ -21,22 +21,54 @@ from PIL import Image
 #import cv2
 import random
 import time
+import skvideo.io
+import torchaudio
+import cv2
 #sys.exit()
+
+
+
+def load_video(video_path):
+    data = skvideo.io.vread(video_path)
+    return data
+
+
+def create_overlapping_samples(sound):
+    """
+    function: to convert an audio into overlapping continous samples
+    """
+
+    sound_avg = sound.mean(0)
+    audio_len = sound_avg.size()[0]
+    sample_window = 8000
+    overlapping = 2000
+    left = 0
+    right = 8000
+    audio_data = torch.Tensor()
+    while left < audio_len:
+        sample = sound_avg[left:right]
+        if sample.size()[0] != 8000:
+            break
+        sample = sample.view(1, 1, sample.size()[0])
+        audio_data = torch.cat((audio_data, sample))
+        left = right - overlapping
+        right = left + sample_window
+
+    return audio_data
+
+
+def load_audio(audio_path):
+    sound, sample_rate = torchaudio.load(audio_path)
+    return create_overlapping_samples(sound)
+    
+
+
+
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 EPS = 1e-06
-def show_image(image):
-    # If dimension is 3 x m x n
-    print(image.shape)
-    image = image.transpose(1, 2, 0)
-    # image = image/float(255)
-    print(image.shape)
-    print("TILL HERE")
-    # plt.imsave('img.jpg', image)
-    plt.imshow(image)
-    plt.show()
 
 def dis_loss(FDwG1, FDwO1, SDwG2, SDwO2 ):
 
@@ -75,7 +107,7 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
     optimizer_sd = torch.optim.Adam(sequence_discriminator.parameters(), lr=0.001)
 
     tick = time.time()
-    num_epochs = 150
+    num_epochs = 50
     best_loss = 1000
     for epoch in range(num_epochs):
         batch_g_loss = 0
@@ -83,7 +115,8 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
         rejected = 0
         for i in range(len(videos)):
             try:
-                video_d = np.load(os.path.join(VIDEO_DATA_PATH,videos[i]))
+                
+                video_d = load_video(os.path.join(VIDEO_DATA_PATH,videos[i]))
                 # print("YES LOADED")
                 # print(video_d.shape)
                 video_d = video_d.transpose(0, 3, 1, 2)
@@ -94,7 +127,7 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 #print(video_d.shape)
                 video_data = Variable(video_d)  # this needs to be array of still frames
 
-                audio_d = np.load(os.path.join(AUDIO_DATA_PATH,audios[i]))
+                audio_d = load_audio(os.path.join(AUDIO_DATA_PATH,audios[i]))
                 audio_d = torch.from_numpy(audio_d)
                 audio_d = audio_d.view(audio_d.size()[0], audio_d.size()[2], audio_d.size()[1])
                 audio_data = Variable(audio_d)
@@ -217,8 +250,8 @@ def generate_test_images(batch_no, unet):
         save_path = './saved/'+str(batch_no)+'/'+str(i)+'/'
         os.makedirs(save_path)
 
-        video_d = np.load(os.path.join(VIDEO_TEST_PATH,videos[i]))
-        audio_d = np.load(os.path.join(AUDIO_TEST_PATH,audios[i]))
+        video_d = load_video(os.path.join(VIDEO_TEST_PATH,videos[i]))
+        audio_d = load_audio(os.path.join(AUDIO_TEST_PATH,audios[i]))
         video_d = torch.from_numpy(video_d)
         audio_d = torch.from_numpy(audio_d)
         print(audio_d.size())
@@ -249,12 +282,12 @@ def generate_test_images(batch_no, unet):
             cv2.imwrite(save_path+str(j)+'.png', img)
         # save_image(gen_frames, save_path+videos[i]+'.png')
 
-view = '/mnt/data/rajivratn/lipsync/saved_models/v1_digits_lr_0.000003'
+view = '/home/harman_suri/saved_models/v1_digits_lr_0.000003'
 if not os.path.exists(view):
     os.makedirs(view)
 def main():
 
-    videos, audios = get_data("v1", 1)
+    videos, audios = get_data("v1", 53)
     print("Data Loaded")
     # if os.path.exists('./Unet.pt'):
     #    unet = torch.load('./Unet.pt')
@@ -288,9 +321,9 @@ def test():
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        video_d = np.load(os.path.join(VIDEO_TEST_PATH,videos[i]))
+        video_d = load_video(os.path.join(VIDEO_TEST_PATH,videos[i]))
         video_d = video_d.transpose(0, 3, 1, 2)
-        audio_d = np.load(os.path.join(AUDIO_DATA_PATH,audios[i]))
+        audio_d = load_audio(os.path.join(AUDIO_DATA_PATH,audios[i]))
 
         stats = {
             'min': [],
@@ -342,8 +375,8 @@ def test():
 
 #test()
         # Save pictures in into video code will go here using openCV
-saved_models_path = '/mnt/data/rajivratn/lipsync/saved_models/'
-saved_video_path = '/mnt/data/rajivratn/lipsync/saved_videos/'
+saved_models_path = '/home/harman_suri/lipsync/saved_models/'
+saved_video_path = '/home/harman_suri/lipsync/saved_videos/'
 def prep_video_gen_data(view,lower, upper):
     print("Yes im called")
     model_path = saved_models_path + view + '_full_phrases/Unet.pt'
@@ -368,9 +401,9 @@ def generate_video(DATA_PATH, name, SAVE_PATH, unet):
     if not os.path.exists(SAVE_PATH):
         os.makedirs(SAVE_PATH)
 
-    video_d = np.load(os.path.join(DATA_PATH, name))
+    video_d = load_video(os.path.join(DATA_PATH, name))
     video_d = video_d.transpose(0, 3, 1, 2)
-    audio_d = np.load(os.path.join(AUDIO_DATA_PATH, name))
+    audio_d = load_audio(os.path.join(AUDIO_DATA_PATH, name))
 
     stats = {
         'min': [],
@@ -417,7 +450,7 @@ def generate_video(DATA_PATH, name, SAVE_PATH, unet):
         img = img*(stats['max'][j] - stats['min'][j]) + stats['min'][j]
         cv2.imwrite(SAVE_PATH+str(j)+'.png', img)
 
-# generate_video('s9_v3_u28.npy')
-# prep_video_gen_data('v1', 30, 60)
+#generate_video('s9_v1_u28.npy')
+prep_video_gen_data('v1', 30, 60)
 
         # save_image(gen_frames, save_path+videos[i]+'.png')
