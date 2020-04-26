@@ -25,7 +25,7 @@ class Down(nn.Module):
         )
 
     def forward(self, x):
-        out = self.conv(x)
+        out = self.conv(x.float())
         return out
 
 
