@@ -1,9 +1,9 @@
 # Data files path
 
 
-AUDIO_DATA_PATH = '/home/harman_suri/cs143-data/audio'
-VIDEO_DATA_PATH = '/home/harman_suri/cs143-data/train'
-VIDEO_TEST_PATH = '/home/harman_suri/cs143-data/test'
+AUDIO_DATA_PATH = '/users/harman/desktop/cs143-aux/cs143-data/audio'
+VIDEO_DATA_PATH = '/users/harman/desktop/cs143-aux/cs143-data/train'
+VIDEO_TEST_PATH = '/users/harman/desktop/cs143-aux/cs143-data/test'
 
 # AUDIO_DATA_PATH = '/Users/vipin/codes/lipSync/data/train/audio'
 # VIDEO_DATA_PATH = '/Users/vipin/codes/lipSync/data/train/video'
