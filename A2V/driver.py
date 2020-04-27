@@ -23,14 +23,28 @@ import random
 import time
 import skvideo.io
 import torchaudio
+from torchvision import transforms
+from PIL import Image
 import cv2
 #sys.exit()
 
+t = transforms.Compose([
+
+            transforms.Resize([96,96]),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
 
 def load_video(video_path):
+    
     data = skvideo.io.vread(video_path)
-    return data
+    y = []
+    for i in range(len(data)):
+        y.append(t(Image.fromarray(data[i])).numpy())
+    y = np.array(y)
+    
+    return y
 
 
 def create_overlapping_samples(sound):
@@ -123,7 +137,7 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 video_d = load_video(os.path.join(VIDEO_DATA_PATH,videos[i]))
                 # print("YES LOADED")
                 # print(video_d.shape)
-                video_d = video_d.transpose(0, 3, 1, 2)
+                #video_d = video_d.transpose(0, 3, 1, 2)
                 for j in range(video_d.shape[0]):
                     video_d[j] = (video_d[j] - video_d[j].min())/(video_d[j].max() - video_d[j].min())
                 video_d = torch.from_numpy(video_d)
@@ -142,20 +156,8 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 noise_data = Variable(torch.rand(MINIBATCHSIZE, 1, NOISE_OUTPUT))
                 # print(noise_data.size())
                 noise_data = noise_data.data.resize_(noise_data.size()).normal_(0, 0.6)
-                # plt.imshow(noise_data.numpy())
-                # plt.show()
-                # print(noise_data)
-                # print(noise_data.size())
-
-                if cuda:
-                    audio_data = audio_data.cuda()
-                    video_data = video_data.cuda()
-                    noise_data = noise_data.cuda()
-                    still_frame = still_frame.cuda()
-                # Train Generator
-                # print(audio_data.size())
-                # print(video_data.size())
-                # print(still_frame.size())
+                
+                
                 optimizer_unet.zero_grad()
                 optimizer_fd.zero_grad()
                 optimizer_sd.zero_grad()
@@ -164,27 +166,15 @@ def train(audios, videos, unet, frame_discriminator, sequence_discriminator):
                 print(noise_data.size())
                 
                 gen_frames = unet(still_frame, audio_data, noise_data)
-                # print(gen_frames[0])
+                video_data = video_data[:gen_frames.size()[0]]
+                still_frame = still_frame[:gen_frames.size()[0]]
 
-                # img = gen_frames[random.randint(0, MINIBATCHSIZE -1)].cpu().detach().numpy().transpose(1, 2, 0)
-                # cv2.imwrite('./logs/'+str(time.time())+'.jpg', img)
-
-
-                #print(gen_frames.size())
-                #img = gen_frames[0].detach().numpy()
-                #show_image(img)
-                #return
-                # print("Generated frames ", gen_frames.size())
 
                 Lambda = 100
-                # print(video_data[0])
-                # print(torch.mean(torch.mean(torch.mean(torch.abs(video_data - gen_frames), 1), 1), 1))
 
-                #print(torch.mean(torch.mean(torch.mean(torch.mean(torch.abs(video_data - gen_frames), 1), 1), 1)))
-                # return
-                l1_loss = torch.mean(torch.mean(torch.mean(torch.mean(torch.abs(video_data - gen_frames), 1), 1), 1))
-                #print(l1_loss)
-                # return
+                l1_loss = torch.mean(torch.mean(torch.mean(torch.mean(
+                        torch.abs(video_data - gen_frames), 1), 1), 1))
+
 
                 out1 = frame_discriminator(video_data, still_frame)
                 out2 = frame_discriminator(gen_frames, still_frame)
@@ -279,7 +269,7 @@ def generate_test_images(batch_no, unet):
             cv2.imwrite(save_path+str(j)+'.png', img)
         # save_image(gen_frames, save_path+videos[i]+'.png')
 
-view = '/home/harman_suri/saved_models/v1_digits_lr_0.000003'
+view = os.path.join(os.getcwd(),'saved_models','v1_digits_lr_0.000003')
 if not os.path.exists(view):
     os.makedirs(view)
 def main():

@@ -82,7 +82,7 @@ class Unet(nn.Module):
         super(Unet, self).__init__()
 
         # Identity Encoder
-        self.debug = debug
+        self.debug = True
 
         self.i_c_1 = Down(3, 64, 4, 4, 2, 1)
         self.i_c_2 = Down(64, 128, 4, 4, 2, 1)
@@ -95,8 +95,8 @@ class Unet(nn.Module):
 
         self.f_d_1 = Up(316, 1024, 3, 3, 1, 3, 3, 1, 0)
         self.f_d_2 = Up(1024, 512, 4, 4, 2, 3, 3, 1, 1)
-        self.f_d_3 = Up(512, 256, 4, 4, 2, 3, 3, 1, 1)
-        self.f_d_4 = Up(256, 128, 4, 4, 2, 3, 3, 1, 1)
+        self.f_d_3 = Up(512, 256, 4, 4, 2, 3, 3, 1, 4)
+        self.f_d_4 = Up(256, 128, 4, 4, 2, 3, 3, 1, 4)
 
         self.f_d_5 = nn.Sequential(
         nn.ConvTranspose2d(
@@ -124,6 +124,7 @@ class Unet(nn.Module):
         self.noise_encoder = nn.GRU(NOISE_OUTPUT, HIDDEN_SIZE_NOISE, NUM_LAYERS_NOISE)
 
     def forward(self, image_data, audio_data, noise_data):
+        
         i_64 = self.i_c_1(image_data)
         if self.debug:
             print(i_64.size())
@@ -145,14 +146,20 @@ class Unet(nn.Module):
         if self.debug:
             print("Latent Encoder size ", latent.size())
         # Audio Data
-
+        
+        
+        
         audio_encoded = self.audio_encoder(audio_data)
         audio_encoded = audio_encoded.view(audio_encoded.size()[0], audio_encoded.size()[2], 1, 1)
         if self.debug:
             print("Audio Encoded size ", audio_encoded.size())
+            
+        batch = audio_encoded.size()[0]
+        latent = latent[:batch]
+        
 
         # Noise part
-        output_noise, hn_noise = self.noise_encoder(noise_data)
+        output_noise, hn_noise = self.noise_encoder(noise_data[:batch])
         output_noise = output_noise.view(output_noise.size()[0], output_noise.size()[2], 1, 1)
         if self.debug:
             print("Noise output size ", output_noise.size())
@@ -164,16 +171,16 @@ class Unet(nn.Module):
 
         # print(latent.size())
         # print("---------------------")
-        f_1024 = self.f_d_1(latent, i_1024)
+        f_1024 = self.f_d_1(latent, i_1024[:batch])
         if self.debug:
             print('f 1024 ', f_1024.size())
-        f_512 = self.f_d_2(f_1024, i_512)
+        f_512 = self.f_d_2(f_1024, i_512[:batch])
         if self.debug:
             print('f 512 ', f_512.size())
-        f_256 = self.f_d_3(f_512, i_256)
+        f_256 = self.f_d_3(f_512, i_256[:batch])
         if self.debug:
             print('f 256 ', f_256.size())
-        f_128 = self.f_d_4(f_256, i_128)
+        f_128 = self.f_d_4(f_256, i_128[:batch])
         if self.debug:
             print('f 128 ', f_128.size())
         f_64 = self.f_d_5(f_128)
@@ -182,6 +189,7 @@ class Unet(nn.Module):
         f_3 = self.f_d_6(f_64)
         if self.debug:
             print('f 3 ', f_3.size())
+            
         diffX = 96 - f_3.size()[2]
         diffY = 96 - f_3.size()[3]
         f_3 = F.pad(f_3, (diffX//2, int(diffX/2), diffY//2, int(diffY/2)))
